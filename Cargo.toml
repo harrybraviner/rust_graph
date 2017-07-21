@@ -3,4 +3,8 @@ name = "graph"
 version = "0.1.0"
 authors = ["Harry J. Braviner <harry.braviner@gmail.com>"]
 
+[lib]
+name = "graph"
+path = "src/lib.rs"
+
 [dependencies]

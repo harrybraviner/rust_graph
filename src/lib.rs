@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
+pub mod graph_builders;
+
 pub struct Graph<T> where T : Clone + Eq + Hash {
     nodes          : Vec<T>,
     node_indices   : HashMap<T, usize>,
@@ -12,18 +14,6 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
 
     pub fn new() -> Graph<T> {
         Graph { nodes : Vec::new(), node_indices : HashMap::new(), node_degrees : Vec::new(), adjacency_list : Vec::new() }
-    }
-
-    pub fn unconnected(nodes : Vec<T>) -> Graph<T> {
-        let hash_map : HashMap<T, usize> =
-            nodes.iter()
-                 .cloned()
-                 .enumerate()
-                 .map(|(i, x)| { (x, i) })
-                 .collect();
-        let node_degrees = vec![0; nodes.len()];
-        let adjacency_list = vec![Vec::new(); nodes.len()];
-        Graph { nodes : nodes.clone(), node_indices : hash_map, node_degrees : node_degrees, adjacency_list : adjacency_list }
     }
 
     fn number_of_vertices(&self) -> usize {
@@ -80,7 +70,7 @@ mod tests {
 
     #[test]
     fn make_unconnected() {
-        let g = Graph::unconnected(vec![1, 2, 10]);
+        let g = graph_builders::unconnected(vec![1, 2, 10]);
 
         assert_eq!(3, g.number_of_vertices());
 
@@ -99,7 +89,7 @@ mod tests {
 
     #[test]
     fn make_unconnected_and_add_edges() {
-        let mut g = Graph::unconnected(vec![0, 1, 2, 3, 4, 5]);
+        let mut g = graph_builders::unconnected(vec![0, 1, 2, 3, 4, 5]);
         
         g.add_directed_edge(0, 2);
         g.add_directed_edge(4, 2);
