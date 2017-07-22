@@ -17,11 +17,11 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
         Graph { nodes : Vec::new(), node_indices : HashMap::new(), node_degrees : Vec::new(), adjacency_list : Vec::new() }
     }
 
-    fn number_of_vertices(&self) -> usize {
+    pub fn number_of_vertices(&self) -> usize {
         self.nodes.len()
     }
 
-    fn node_from_index(&self, index : usize) -> T {
+    pub fn node_from_index(&self, index : usize) -> T {
         if index < self.number_of_vertices() {
             self.nodes[index].clone()
         } else {
@@ -29,18 +29,18 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
         }
     }
 
-    fn index_from_node(&self, node : T) -> usize {
+    pub fn index_from_node(&self, node : T) -> usize {
         match self.node_indices.get(&node) {
             Some(i) => i.clone(),
             None => panic!("Node was not present in the graph."),
         }
     }
 
-    fn get_degree_from_index(&self, index : usize) -> usize {
+    pub fn get_degree_from_index(&self, index : usize) -> usize {
         self.node_degrees[index]
     }
 
-    fn add_directed_edge(&mut self, source_index : usize, dest_index : usize) {
+    pub fn add_directed_edge(&mut self, source_index : usize, dest_index : usize) {
         if dest_index >= self.number_of_vertices() {
             panic!("dest_index {} was >= {}, the number of vertices in the graph.", dest_index, self.number_of_vertices())
         }
@@ -53,7 +53,7 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
         }
     }
 
-    fn add_undirected_edge(&mut self, source_index : usize, dest_index : usize) {
+    pub fn add_undirected_edge(&mut self, source_index : usize, dest_index : usize) {
         self.add_directed_edge(source_index, dest_index);
         self.add_directed_edge(dest_index, source_index);
     }
