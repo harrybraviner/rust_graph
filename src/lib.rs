@@ -58,7 +58,11 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
         self.add_directed_edge(dest_index, source_index);
     }
 
-    pub fn breadth_first_iter_from_index<F> (&self, mut process_vertex : F, root_index : usize) where F : FnMut(&T) -> () {
+    pub fn breadth_first_iter_from_index<F, G> (&self,
+                                                mut process_vertex : F,
+                                                mut process_edge : G,
+                                                root_index : usize)
+        where F : FnMut(&T) -> (), G : FnMut(&T, &T) -> () {
         #[derive(PartialEq, Eq, Clone)]
         enum NodeState {
             Undiscovered,
@@ -74,6 +78,8 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
 
         while let Some(current_node) = nodes_to_process.pop_front() {
             for dest_node in &self.adjacency_list[current_node] {
+                // Note - this does both edges in both directions for an undirected graph.
+                process_edge(&self.nodes[current_node], &self.nodes[*dest_node]);
                 if node_states[*dest_node] == NodeState::Undiscovered {
                     node_states[*dest_node] = NodeState::Discovered;
                     nodes_to_process.push_back(*dest_node);
@@ -181,11 +187,25 @@ mod tests {
     }
 
     #[test]
-    fn breadth_first_traversal() {
+    fn breadth_first_traversal_node_processing() {
         let g = graph_builders::from_file("test_data/graph2").unwrap();
 
         let mut count = 0;
-        g.breadth_first_iter_from_index(|x| { count += 1; }, 0);
+        g.breadth_first_iter_from_index(|_| { count += 1; }, |_, _| { }, 0);
         assert_eq!(3, count);
+    }
+
+    #[test]
+    fn breadth_first_traversal_edge_processing() {
+        let g = graph_builders::from_file("test_data/graph2").unwrap();
+
+        let mut edges = Vec::<(usize, usize)>::new();
+        g.breadth_first_iter_from_index(|_| { }, |s, d| { edges.push((*s, *d)); }, 0);
+
+        assert_eq!(4, edges.len());
+        assert_eq!((0, 1), edges[0]);
+        assert_eq!((0, 2), edges[1]);
+        assert_eq!((1, 0), edges[2]);
+        assert_eq!((2, 0), edges[3]);
     }
 }
