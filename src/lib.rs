@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::hash::Hash;
 
 pub mod graph_builders;
@@ -55,6 +56,33 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
     fn add_undirected_edge(&mut self, source_index : usize, dest_index : usize) {
         self.add_directed_edge(source_index, dest_index);
         self.add_directed_edge(dest_index, source_index);
+    }
+
+    pub fn breadth_first_iter_from_index<F> (&self, mut process_vertex : F, root_index : usize) where F : FnMut(&T) -> () {
+        #[derive(PartialEq, Eq, Clone)]
+        enum NodeState {
+            Undiscovered,
+            Discovered,
+            Processed,
+        };
+
+        let mut node_states = vec![NodeState::Undiscovered; self.number_of_vertices()];
+        node_states[root_index] = NodeState::Discovered;
+
+        let mut nodes_to_process = VecDeque::<usize>::new();
+        nodes_to_process.push_back(root_index);
+
+        while let Some(current_node) = nodes_to_process.pop_front() {
+            for dest_node in &self.adjacency_list[current_node] {
+                if node_states[*dest_node] == NodeState::Undiscovered {
+                    node_states[*dest_node] = NodeState::Discovered;
+                    nodes_to_process.push_back(*dest_node);
+                }
+            }
+
+            process_vertex(&self.nodes[current_node]);
+            node_states[current_node] = NodeState::Processed;
+        }
     }
 }
 
@@ -150,5 +178,14 @@ mod tests {
         assert_eq!(0, g.index_from_node(0));
         assert_eq!(1, g.index_from_node(1));
         assert_eq!(2, g.index_from_node(2));
+    }
+
+    #[test]
+    fn breadth_first_traversal() {
+        let g = graph_builders::from_file("test_data/graph2").unwrap();
+
+        let mut count = 0;
+        g.breadth_first_iter_from_index(|x| { count += 1; }, 0);
+        assert_eq!(3, count);
     }
 }
