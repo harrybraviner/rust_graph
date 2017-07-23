@@ -91,5 +91,15 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
         }
     }
 
+    // FIXME - I don't understand why process_edge and process_vertex don't need
+    //         to be mutable here, whereas they do in the fn above (which I call!)
+    pub fn breadth_first_iter_from_node<F, G> (&self,
+                                               process_vertex : F,
+                                               process_edge : G,
+                                               root_node : T)
+        where F : FnMut(&T) -> (), G : FnMut(&T, &T) -> () {
+        let root_index = self.index_from_node(root_node);
+        self.breadth_first_iter_from_index(process_vertex, process_edge, root_index)
+    }
 }
 
