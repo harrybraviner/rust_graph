@@ -110,12 +110,12 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
         self.breadth_first_iter_from_index(process_vertex, process_edge, root_index)
     }
 
-    pub fn depth_first_iter_from_index<F, G> (&self,
-                                              process_vertex_early : F,
-                                              process_vertex_late  : F,
-                                              process_edge         : G,
-                                              root_node : usize)
-        where F : FnMut(&T) -> (), G : FnMut(&T, &T) -> () {
+    pub fn depth_first_iter_from_index<F, G, H> (&self,
+                                                 mut process_vertex_early : F,
+                                                 mut process_vertex_late  : G,
+                                                 process_edge         : H,
+                                                 root_node : usize)
+        where F : FnMut(&T) -> (), G : FnMut(&T) -> (), H : FnMut(&T, &T) -> () {
 
         let mut discovery_state = vec![DFSTraversalState::Undiscovered; self.number_of_vertices()];
         let mut parent : Vec<Option<usize>> = vec![None; self.number_of_vertices()];
@@ -129,40 +129,35 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
         // A recursive function (that changes all of the above mutable state)
         // seems like a much nicer way of doing this.
         // FIXME - calls to processing functions?
-        // FIXME - make the recursion below work!
-        fn inner_dfs(current_node    : usize,
-                     adjacency_list  : &    Vec<Vec<usize>>,
-                     discovery_state : &mut Vec<DFSTraversalState>,
-                     parent          : &mut Vec<Option<usize>>,
-                     time            : &mut usize) {
+
+        // The amount of mutable state I have to pass in here is horrific,
+        // but making a recursive closure turned out to be pretty hard!
+        fn inner_dfs<T, F, G>(current_node    : usize,
+                        nodes           : &    Vec<T>,
+                        process_vertex_early : &mut F,
+                        process_vertex_late  : &mut G,
+                        adjacency_list  : &    Vec<Vec<usize>>,
+                        discovery_state : &mut Vec<DFSTraversalState>,
+                        parent          : &mut Vec<Option<usize>>,
+                        time            : &mut usize) 
+            where F : FnMut(&T) -> (), G : FnMut(&T) -> () {
+            process_vertex_early(&nodes[current_node]);
             let entry_time : usize = *time;
             discovery_state[current_node] = DFSTraversalState::Processing(entry_time);
             *time += 1;
             for dest_node in &adjacency_list[current_node] {
                 if discovery_state[*dest_node] == DFSTraversalState::Undiscovered {
                     parent[*dest_node] = Some(current_node);
-                    inner_dfs(*dest_node, adjacency_list, discovery_state, parent, time);
+                    inner_dfs(*dest_node, nodes, process_vertex_early, process_vertex_late, adjacency_list, discovery_state, parent, time);
                     // FIXME - process_edge??
                 }
             }
             discovery_state[current_node] = DFSTraversalState::Processed(entry_time, *time);
             *time += 1;
+            process_vertex_late(&nodes[current_node]);
         };
 
-        inner_dfs(root_node, &self.adjacency_list, &mut discovery_state, &mut parent, &mut time);
-
-//        while let Some(current_node) = processing_stack.pop_back() {
-//            discovery_state[current_node] = DFSTraversalState::Processing(time);
-//            time += 1;
-//            for dest_node in &self.adjacency_list[current_node] {
-//                if discovery_state[*dest_node] == DFSTraversalState::Undiscovered {
-//                    parent[*dest_node] = Some(current_node);    // FIXME - this doesn't work because of processing order!
-//                    processing_stack.push_back(*dest_node);     // FIXME - and this will put some nodes of the stack multiple times!
-//                }
-//            }
-//        }
-
-        panic!("Not implemented")
+        inner_dfs(root_node, &self.nodes, &mut process_vertex_early, &mut process_vertex_late, &self.adjacency_list, &mut discovery_state, &mut parent, &mut time);
     }
 }
 
