@@ -11,10 +11,11 @@ You are free to copy and reuse this code.
 # Features
 
 * Breadth-first traversal.
-* Depth-first traversal.
+* Depth-first traversal (partial)
 * Ability to read graph from a file.
 
 # Coming soon
 
+* Depth-first traversal directed / non-directed edge processing.
 * Depth-first traversal tests.
 * Ability to write the graph to a file.
