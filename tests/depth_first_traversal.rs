@@ -10,7 +10,7 @@ fn traversal_order() {
 
     g.depth_first_iter_from_index(|i| discovery_order.push(*i),
                                   |i| processed_order.push(*i),
-                                  |_, _| { },
+                                  |_, _, _| { },
                                   0);
     assert_eq!(vec![0, 1], discovery_order);
     assert_eq!(vec![1, 0], processed_order);
@@ -19,7 +19,7 @@ fn traversal_order() {
     processed_order.clear();
     g.depth_first_iter_from_index(|i| discovery_order.push(*i),
                                   |i| processed_order.push(*i),
-                                  |_, _| { },
+                                  |_, _, _| { },
                                   1);
     assert_eq!(vec![1, 0], discovery_order);
     assert_eq!(vec![0, 1], processed_order);
@@ -28,7 +28,7 @@ fn traversal_order() {
     processed_order.clear();
     g.depth_first_iter_from_index(|i| discovery_order.push(*i),
                                   |i| processed_order.push(*i),
-                                  |_, _| { },
+                                  |_, _, _| { },
                                   2);
     assert_eq!(vec![2, 0, 1], discovery_order);
     assert_eq!(vec![1, 0, 2], processed_order);
@@ -43,7 +43,7 @@ fn traversal_order_2() {
 
     g.depth_first_iter_from_index(|i| discovery_order.push(*i),
                                   |i| processed_order.push(*i),
-                                  |_, _| { },
+                                  |_, _, _| { },
                                   0);
     assert_eq!(vec![0, 1, 2, 3, 4, 5], discovery_order);
     assert_eq!(vec![4, 3, 2, 1, 5, 0], processed_order);
@@ -52,7 +52,7 @@ fn traversal_order_2() {
     processed_order.clear();
     g.depth_first_iter_from_index(|i| discovery_order.push(*i),
                                   |i| processed_order.push(*i),
-                                  |_, _| { },
+                                  |_, _, _| { },
                                   2);
     assert_eq!(vec![2, 1, 0, 3, 4, 5], discovery_order);
     assert_eq!(vec![4, 3, 5, 0, 1, 2], processed_order);
