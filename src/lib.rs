@@ -125,61 +125,61 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
                                                  mut process_edge         : H,
                                                  root_node : usize)
         where F : FnMut(&T) -> (), G : FnMut(&T) -> (), H : FnMut(&T, &T, DFSEdgeType) -> () {
-
+        
         let mut discovery_state = vec![DFSTraversalState::Undiscovered; self.number_of_vertices()];
-        let mut parent : Vec<Option<usize>> = vec![None; self.number_of_vertices()];
-        let mut time = 0usize;  // FIXME - if we have more than MAX_USIZE/2 nodes in the graph, this will overflow!
+        // Call into a recursive function
+        self.inner_dfs(&mut process_vertex_early,
+                       &mut process_vertex_late,
+                       &mut process_edge,
+                       &mut discovery_state,
+                       0usize,
+                       root_node);
+    }
 
-        // Keeping an explict stack turns out to be quite tricky.
-        // A recursive function (that changes all of the above mutable state)
-        // seems like a much nicer way of doing this.
-        // FIXME - calls to processing functions?
-
-        // The amount of mutable state I have to pass in here is horrific,
-        // but making a recursive closure turned out to be pretty hard!
-        fn inner_dfs<T, F, G, H>(current_node    : usize,
-                                 nodes           : &    Vec<T>,
-                                 process_vertex_early : &mut F,
-                                 process_vertex_late  : &mut G,
-                                 process_edge         : &mut H,
-                                 adjacency_list  : &    Vec<Vec<usize>>,
-                                 discovery_state : &mut Vec<DFSTraversalState>,
-                                 parent          : &mut Vec<Option<usize>>,
-                                 time            : &mut usize) 
-            where F : FnMut(&T) -> (), G : FnMut(&T) -> (),
-                  H : FnMut(&T, &T, DFSEdgeType) -> () {
-            process_vertex_early(&nodes[current_node]);
-            let entry_time : usize = *time;
+    // Recursive part of DFS
+    fn inner_dfs<F, G, H>(&self,
+                          process_vertex_early     : &mut F,
+                          process_vertex_late      : &mut G,
+                          process_edge             : &mut H,
+                          discovery_state          : &mut Vec<DFSTraversalState>,
+                          time                     : usize,
+                          current_node             : usize) -> usize    // Returns the exit time + 1
+        where F : FnMut(&T) -> (), G : FnMut(&T) -> (),
+              H : FnMut(&T, &T, DFSEdgeType) -> () {
+            process_vertex_early(&self.nodes[current_node]);
+            let entry_time : usize = time;
+            let mut running_time = time + 1;
             discovery_state[current_node] = DFSTraversalState::Processing(entry_time);
-            *time += 1;
-            for dest_node in &adjacency_list[current_node] {
+            running_time += 1;
+            for dest_node in &self.adjacency_list[current_node] {
                 match discovery_state[*dest_node] {
                     DFSTraversalState::Undiscovered => {
-                        parent[*dest_node] = Some(current_node);
-                        process_edge(&nodes[current_node], &nodes[*dest_node], DFSEdgeType::Tree);
-                        inner_dfs(*dest_node, nodes, process_vertex_early, process_vertex_late,
-                                  process_edge, adjacency_list, discovery_state, parent, time);
+                        //parent[*dest_node] = Some(current_node);
+                        process_edge(&self.nodes[current_node], &self.nodes[*dest_node], DFSEdgeType::Tree);
+                        running_time = self.inner_dfs(process_vertex_early,
+                                                      process_vertex_late,
+                                                      process_edge,
+                                                      discovery_state,
+                                                      running_time,
+                                                      *dest_node);
                     },
                     DFSTraversalState::Processing(_) => {
-                        process_edge(&nodes[current_node], &nodes[*dest_node], DFSEdgeType::Back);
+                        process_edge(&self.nodes[current_node], &self.nodes[*dest_node], DFSEdgeType::Back);
                     },
                     DFSTraversalState::Processed(dest_entry_time, _) => {
                         if dest_entry_time > entry_time {
-                            process_edge(&nodes[current_node], &nodes[*dest_node], DFSEdgeType::Forward);
+                            process_edge(&self.nodes[current_node], &self.nodes[*dest_node], DFSEdgeType::Forward);
                         } else {
-                            process_edge(&nodes[current_node], &nodes[*dest_node], DFSEdgeType::Cross);
+                            process_edge(&self.nodes[current_node], &self.nodes[*dest_node], DFSEdgeType::Cross);
                         }
                     },
                 }
-                // FIXME - process_edge??
             }
-            discovery_state[current_node] = DFSTraversalState::Processed(entry_time, *time);
-            *time += 1;
-            process_vertex_late(&nodes[current_node]);
-        };
-
-        inner_dfs(root_node, &self.nodes, &mut process_vertex_early, &mut process_vertex_late, &mut process_edge,
-                  &self.adjacency_list, &mut discovery_state, &mut parent, &mut time);
-    }
+            discovery_state[current_node] = DFSTraversalState::Processed(entry_time, running_time);
+            running_time += 1;
+            process_vertex_late(&self.nodes[current_node]);
+            // Return the next time available for use
+            running_time
+        }
 }
 
