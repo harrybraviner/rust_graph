@@ -7,14 +7,13 @@ pub mod graph_builders;
 pub struct Graph<T> where T : Clone + Eq + Hash {
     nodes          : Vec<T>,
     node_indices   : HashMap<T, usize>,
-    node_degrees   : Vec<usize>,
     adjacency_list : Vec<Vec<usize>>,
 }
 
 impl<T> Graph<T> where T : Clone + Eq + Hash {
 
     pub fn new() -> Graph<T> {
-        Graph { nodes : Vec::new(), node_indices : HashMap::new(), node_degrees : Vec::new(), adjacency_list : Vec::new() }
+        Graph { nodes : Vec::new(), node_indices : HashMap::new(), adjacency_list : Vec::new() }
     }
 
     pub fn number_of_vertices(&self) -> usize {
@@ -37,7 +36,7 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
     }
 
     pub fn get_degree_from_index(&self, index : usize) -> usize {
-        self.node_degrees[index]
+        self.adjacency_list[index].len()
     }
 
     pub fn add_directed_edge(&mut self, source_index : usize, dest_index : usize) {
@@ -49,7 +48,6 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
         }
         if !self.adjacency_list[source_index].contains(&dest_index) {
             self.adjacency_list[source_index].push(dest_index);
-            self.node_degrees[source_index] += 1;
         }
     }
 

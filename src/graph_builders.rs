@@ -13,9 +13,8 @@ pub fn unconnected<T : Eq + Clone + Hash>(nodes : Vec<T>) -> Graph<T> {
              .enumerate()
              .map(|(i, x)| { (x, i) })
              .collect();
-    let node_degrees = vec![0; nodes.len()];
     let adjacency_list = vec![Vec::new(); nodes.len()];
-    Graph { nodes : nodes.clone(), node_indices : hash_map, node_degrees : node_degrees, adjacency_list : adjacency_list }
+    Graph { nodes : nodes.clone(), node_indices : hash_map, adjacency_list : adjacency_list }
 }
 
 pub fn from_file(filename : &str) -> Result<Graph<usize>> {
