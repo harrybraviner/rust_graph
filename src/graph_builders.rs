@@ -81,3 +81,22 @@ pub fn from_file(filename : &str) -> Result<Graph<usize>> {
 
     return Ok(g);
 }
+
+pub fn makeSerializationString<T>(graph : &Graph<T>) -> String
+    where T : Clone + Eq + Hash    
+{
+    let mut ser = String::new();
+    ser.push_str("// Graph\n");
+    ser.push_str(&*format!("number_of_vertices: {}\n", graph.number_of_vertices()));
+    ser.push_str(&*format!("directed: {}\n", graph.is_directed()));
+    
+    for source in 0..(graph.number_of_vertices()) {
+        for dest in &graph.adjacency_list[source] {
+            if graph.is_directed() || *dest > source {
+                ser.push_str(&*format!("{} {}\n", source, *dest));
+            }
+        }
+    }
+
+    ser
+}
