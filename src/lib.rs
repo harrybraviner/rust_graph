@@ -26,7 +26,7 @@ pub enum DFSTraversalState {
     Processed  (usize, usize),
 }
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum DFSEdgeType {
     Tree,
     Back,
@@ -173,7 +173,7 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
                                                       *dest_node);
                     },
                     DFSTraversalState::Processing(_) => {
-                        if parent[current_node] != Some(*dest_node) {
+                        if parent[current_node] != Some(*dest_node) || self.is_directed() {
                             process_edge(&self.nodes[current_node], &self.nodes[*dest_node], DFSEdgeType::Back);
                         }
                     },

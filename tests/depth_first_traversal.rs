@@ -57,3 +57,29 @@ fn traversal_order_2() {
     assert_eq!(vec![2, 1, 0, 3, 4, 5], discovery_order);
     assert_eq!(vec![4, 3, 5, 0, 1, 2], processed_order);
 }
+
+#[test]
+fn edge_processing_directed() {
+    let g = graph_builders::from_file("test_data/graph4").unwrap();
+
+    let mut edges = Vec::<(usize, usize, graph::DFSEdgeType)>::new();
+
+    g.depth_first_iter_from_index(|_| { },
+                                  |_| { },
+                                  |s, d, t| edges.push((*s, *d, t)),
+                                  2);
+    let expected_edges =
+        vec![(2, 0, graph::DFSEdgeType::Tree),
+             (0, 4, graph::DFSEdgeType::Tree),
+             (4, 0, graph::DFSEdgeType::Back),
+             (4, 2, graph::DFSEdgeType::Back),
+             (4, 5, graph::DFSEdgeType::Tree),
+             (4, 6, graph::DFSEdgeType::Tree),
+             (2, 1, graph::DFSEdgeType::Tree),
+             (1, 3, graph::DFSEdgeType::Tree),
+             (1, 4, graph::DFSEdgeType::Cross),
+             (2, 3, graph::DFSEdgeType::Forward)];
+
+    assert_eq!(expected_edges, edges);
+
+}
