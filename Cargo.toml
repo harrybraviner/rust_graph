@@ -5,6 +5,6 @@ authors = ["Harry J. Braviner <harry.braviner@gmail.com>"]
 
 [lib]
 name = "graph"
-path = "src/lib.rs"
+path = "src/graph.rs"
 
 [dependencies]
