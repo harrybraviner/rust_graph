@@ -17,5 +17,5 @@ You are free to copy and reuse this code.
 # Coming soon
 
 * Depth-first traversal directed / non-directed edge processing.
-* Depth-first traversal tests.
+* Depth-first traversal tests for edge processing.
 * Ability to write the graph to a file.

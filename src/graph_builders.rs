@@ -6,7 +6,7 @@ use std::io::BufReader;
 use std::io::prelude::*;
 use std::io::Result;
 
-pub fn unconnected<T : Eq + Clone + Hash>(nodes : Vec<T>) -> Graph<T> {
+pub fn unconnected<T : Eq + Clone + Hash>(nodes : Vec<T>, directed : bool) -> Graph<T> {
     let hash_map : HashMap<T, usize> =
         nodes.iter()
              .cloned()
@@ -15,7 +15,7 @@ pub fn unconnected<T : Eq + Clone + Hash>(nodes : Vec<T>) -> Graph<T> {
              .collect();
     let node_degrees = vec![0; nodes.len()];
     let adjacency_list = vec![Vec::new(); nodes.len()];
-    Graph { nodes : nodes.clone(), node_indices : hash_map, node_degrees : node_degrees, adjacency_list : adjacency_list }
+    Graph { nodes : nodes.clone(), directed : directed, node_indices : hash_map, node_degrees : node_degrees, adjacency_list : adjacency_list }
 }
 
 pub fn from_file(filename : &str) -> Result<Graph<usize>> {
@@ -70,7 +70,8 @@ pub fn from_file(filename : &str) -> Result<Graph<usize>> {
         }
     }
 
-    let mut g = unconnected((0..number_of_vertices).collect());
+    // Safe method of adding edges - ignores if the edge is already present
+    let mut g = unconnected((0..number_of_vertices).collect(), directed);
     for (s, d) in edges {
         if directed {
             g.add_directed_edge(s, d);

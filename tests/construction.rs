@@ -9,7 +9,7 @@ fn make_empty() {
 
 #[test]
 fn make_unconnected() {
-    let g = graph_builders::unconnected(vec![1, 2, 10]);
+    let g = graph_builders::unconnected(vec![1, 2, 10], false);
 
     assert_eq!(3, g.number_of_vertices());
 
@@ -28,7 +28,7 @@ fn make_unconnected() {
 
 #[test]
 fn make_unconnected_and_add_edges() {
-    let mut g = graph_builders::unconnected(vec![0, 1, 2, 3, 4, 5]);
+    let mut g = graph_builders::unconnected(vec![0, 1, 2, 3, 4, 5], false);
     
     g.add_directed_edge(0, 2);
     g.add_directed_edge(4, 2);
