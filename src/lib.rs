@@ -5,19 +5,47 @@ use std::hash::Hash;
 pub mod graph_builders;
 
 pub struct Graph<T> where T : Clone + Eq + Hash {
+    directed       : bool,
     nodes          : Vec<T>,
     node_indices   : HashMap<T, usize>,
     adjacency_list : Vec<Vec<usize>>,
 }
 
+#[derive(PartialEq, Eq, Clone)]
+pub enum BFSTraversalState {
+    Undiscovered,
+    Discovered,
+    Processed,
+}
+
+#[derive(PartialEq, Eq, Clone)]
+pub enum DFSTraversalState {
+    Undiscovered,
+    Processing (usize),
+    Processed  (usize, usize),
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum DFSEdgeType {
+    Tree,
+    Back,
+    Cross,
+    Forward,
+}
+
+
 impl<T> Graph<T> where T : Clone + Eq + Hash {
 
     pub fn new() -> Graph<T> {
-        Graph { nodes : Vec::new(), node_indices : HashMap::new(), adjacency_list : Vec::new() }
+        Graph { nodes : Vec::new(), directed : false, node_indices : HashMap::new(), adjacency_list : Vec::new() }
     }
 
     pub fn number_of_vertices(&self) -> usize {
         self.nodes.len()
+    }
+
+    pub fn is_directed(&self) -> bool {
+        self.directed
     }
 
     pub fn node_from_index(&self, index : usize) -> T {
@@ -61,15 +89,9 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
                                                 mut process_edge : G,
                                                 root_index : usize)
         where F : FnMut(&T) -> (), G : FnMut(&T, &T) -> () {
-        #[derive(PartialEq, Eq, Clone)]
-        enum NodeState {
-            Undiscovered,
-            Discovered,
-            Processed,
-        };
 
-        let mut node_states = vec![NodeState::Undiscovered; self.number_of_vertices()];
-        node_states[root_index] = NodeState::Discovered;
+        let mut node_states = vec![BFSTraversalState::Undiscovered; self.number_of_vertices()];
+        node_states[root_index] = BFSTraversalState::Discovered;
 
         let mut nodes_to_process = VecDeque::<usize>::new();
         nodes_to_process.push_back(root_index);
@@ -78,14 +100,14 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
             for dest_node in &self.adjacency_list[current_node] {
                 // Note - this does both edges in both directions for an undirected graph.
                 process_edge(&self.nodes[current_node], &self.nodes[*dest_node]);
-                if node_states[*dest_node] == NodeState::Undiscovered {
-                    node_states[*dest_node] = NodeState::Discovered;
+                if node_states[*dest_node] == BFSTraversalState::Undiscovered {
+                    node_states[*dest_node] = BFSTraversalState::Discovered;
                     nodes_to_process.push_back(*dest_node);
                 }
             }
 
             process_vertex(&self.nodes[current_node]);
-            node_states[current_node] = NodeState::Processed;
+            node_states[current_node] = BFSTraversalState::Processed;
         }
     }
 
@@ -99,5 +121,76 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
         let root_index = self.index_from_node(root_node);
         self.breadth_first_iter_from_index(process_vertex, process_edge, root_index)
     }
+
+    pub fn depth_first_iter_from_index<F, G, H> (&self,
+                                                 mut process_vertex_early : F,
+                                                 mut process_vertex_late  : G,
+                                                 mut process_edge         : H,
+                                                 root_node : usize)
+        where F : FnMut(&T) -> (), G : FnMut(&T) -> (), H : FnMut(&T, &T, DFSEdgeType) -> () {
+        
+        let mut discovery_state = vec![DFSTraversalState::Undiscovered; self.number_of_vertices()];
+        let mut parent = vec![None; self.number_of_vertices()];
+        // Call into a recursive function
+        self.inner_dfs(&mut process_vertex_early,
+                       &mut process_vertex_late,
+                       &mut process_edge,
+                       &mut discovery_state,
+                       &mut parent,
+                       0usize,
+                       root_node);
+    }
+
+    // Recursive part of DFS
+    fn inner_dfs<F, G, H>(&self,
+                          process_vertex_early     : &mut F,
+                          process_vertex_late      : &mut G,
+                          process_edge             : &mut H,
+                          discovery_state          : &mut Vec<DFSTraversalState>,
+                          parent                   : &mut Vec<Option<usize>>,
+                          time                     : usize,
+                          current_node             : usize) -> usize    // Returns the exit time + 1
+        where F : FnMut(&T) -> (), G : FnMut(&T) -> (),
+              H : FnMut(&T, &T, DFSEdgeType) -> () {
+            process_vertex_early(&self.nodes[current_node]);
+            let entry_time : usize = time;
+            let mut running_time = time + 1;
+            discovery_state[current_node] = DFSTraversalState::Processing(entry_time);
+            running_time += 1;
+            for dest_node in &self.adjacency_list[current_node] {
+                match discovery_state[*dest_node] {
+                    DFSTraversalState::Undiscovered => {
+                        parent[*dest_node] = Some(current_node);
+                        process_edge(&self.nodes[current_node], &self.nodes[*dest_node], DFSEdgeType::Tree);
+                        running_time = self.inner_dfs(process_vertex_early,
+                                                      process_vertex_late,
+                                                      process_edge,
+                                                      discovery_state,
+                                                      parent,
+                                                      running_time,
+                                                      *dest_node);
+                    },
+                    DFSTraversalState::Processing(_) => {
+                        if parent[current_node] != Some(*dest_node) || self.is_directed() {
+                            process_edge(&self.nodes[current_node], &self.nodes[*dest_node], DFSEdgeType::Back);
+                        }
+                    },
+                    DFSTraversalState::Processed(dest_entry_time, _) => {
+                        if self.is_directed() {
+                            if dest_entry_time > entry_time {
+                                process_edge(&self.nodes[current_node], &self.nodes[*dest_node], DFSEdgeType::Forward);
+                            } else {
+                                process_edge(&self.nodes[current_node], &self.nodes[*dest_node], DFSEdgeType::Cross);
+                            }
+                        }
+                    },
+                }
+            }
+            discovery_state[current_node] = DFSTraversalState::Processed(entry_time, running_time);
+            running_time += 1;
+            process_vertex_late(&self.nodes[current_node]);
+            // Return the next time available for use
+            running_time
+        }
 }
 
