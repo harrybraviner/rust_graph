@@ -83,3 +83,26 @@ fn edge_processing_directed() {
     assert_eq!(expected_edges, edges);
 
 }
+
+#[test]
+fn edge_processing_undirected() {
+    let g = graph_builders::from_file("test_data/graph3").unwrap();
+
+    let mut edges = Vec::<(usize, usize, graph::DFSEdgeType)>::new();
+
+    g.depth_first_iter_from_index(|_| { },
+                                  |_| { },
+                                  |s, d, t| edges.push((*s, *d, t)),
+                                  1);
+    let expected_edges =
+        vec![(1, 0, graph::DFSEdgeType::Tree),
+             (0, 3, graph::DFSEdgeType::Tree),
+             (3, 2, graph::DFSEdgeType::Tree),
+             (2, 1, graph::DFSEdgeType::Back),
+             (2, 4, graph::DFSEdgeType::Tree),
+             (4, 3, graph::DFSEdgeType::Back),
+             (0, 5, graph::DFSEdgeType::Tree)];
+
+    assert_eq!(expected_edges, edges);
+
+}
