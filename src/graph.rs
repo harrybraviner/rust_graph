@@ -141,6 +141,28 @@ impl<T> Graph<T> where T : Clone + Eq + Hash {
                        root_node);
     }
 
+    pub fn depth_first_iter<F, G, H> (&self,
+                                      mut process_vertex_early : F,
+                                      mut process_vertex_late  : G,
+                                      mut process_edge         : H)
+        where F : FnMut(&T) -> (), G : FnMut(&T) -> (), H : FnMut(&T, &T, DFSEdgeType) -> () {
+        
+        let mut discovery_state = vec![DFSTraversalState::Undiscovered; self.number_of_vertices()];
+        let mut parent = vec![None; self.number_of_vertices()];
+        for root_node in 0..self.number_of_vertices() {
+            if discovery_state[root_node] == DFSTraversalState::Undiscovered {
+                // Call into a recursive function
+                self.inner_dfs(&mut process_vertex_early,
+                               &mut process_vertex_late,
+                               &mut process_edge,
+                               &mut discovery_state,
+                               &mut parent,
+                               0usize,
+                               root_node);
+            }
+        };
+    }
+
     // Recursive part of DFS
     fn inner_dfs<F, G, H>(&self,
                           process_vertex_early     : &mut F,
