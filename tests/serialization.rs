@@ -10,7 +10,7 @@ fn serialise_unconnected_graph() {
     expected_string.push_str("number_of_vertices: 4\n");
     expected_string.push_str("directed: false\n");
 
-    assert_eq!(expected_string, makeSerializationString(&g));
+    assert_eq!(expected_string, make_serialization_string(&g));
 }
 
 #[test]
@@ -28,7 +28,7 @@ fn serialise_undirected_graph() {
     expected_string.push_str("2 3\n");
 
 
-    assert_eq!(expected_string, makeSerializationString(&g));
+    assert_eq!(expected_string, make_serialization_string(&g));
 }
 
 #[test]
@@ -47,5 +47,5 @@ fn serialise_directed_graph() {
     expected_string.push_str("3 2\n");
 
 
-    assert_eq!(expected_string, makeSerializationString(&g));
+    assert_eq!(expected_string, make_serialization_string(&g));
 }

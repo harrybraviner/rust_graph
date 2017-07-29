@@ -82,7 +82,7 @@ pub fn from_file(filename : &str) -> Result<Graph<usize>> {
     return Ok(g);
 }
 
-pub fn makeSerializationString<T>(graph : &Graph<T>) -> String
+pub fn make_serialization_string<T>(graph : &Graph<T>) -> String
     where T : Clone + Eq + Hash    
 {
     let mut ser = String::new();
