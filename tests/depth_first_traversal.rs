@@ -121,7 +121,7 @@ fn iter_on_fan_in() {
     
     g.depth_first_iter(|i| discovery_order.push(*i),
                        |i| processed_order.push(*i),
-                       |s, d, t| edges.push((*s, *d, t)));
+                       |s, d, t, _| edges.push((*s, *d, t)));
 
     assert_eq!(vec![0, 1, 2, 3, 4], discovery_order);
     assert_eq!(vec![2, 1, 0, 3, 4], processed_order);

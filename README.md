@@ -18,10 +18,9 @@ You are free to copy and reuse this code.
 
 * Breadth-first traversal.
 * Depth-first traversal.
-* Ability to read graph from a file.
-* Ability to write the graph to a file.
+* Ability to serialize / deserialize graphs.
 
 # Coming soon
 
-* Ability to serialize / deserialize contents of a node.
-* Shortest path traversal.
+* Shortest path finding.
+* DAG testing and topological sort.
