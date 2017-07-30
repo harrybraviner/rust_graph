@@ -106,3 +106,31 @@ fn edge_processing_undirected() {
     assert_eq!(expected_edges, edges);
 
 }
+
+#[test]
+fn iter_on_fan_in() {
+    let mut g = graph_builders::unconnected(vec![0, 1, 2, 3, 4], true);
+    g.add_directed_edge(0, 1);
+    g.add_directed_edge(1, 2);
+    g.add_directed_edge(3, 1);
+    g.add_directed_edge(4, 2);
+
+    let mut discovery_order = Vec::<usize>::new();
+    let mut processed_order = Vec::<usize>::new();
+    let mut edges = Vec::<(usize, usize, graph::DFSEdgeType)>::new();
+    
+    g.depth_first_iter(|i| discovery_order.push(*i),
+                       |i| processed_order.push(*i),
+                       |s, d, t, _| edges.push((*s, *d, t)));
+
+    assert_eq!(vec![0, 1, 2, 3, 4], discovery_order);
+    assert_eq!(vec![2, 1, 0, 3, 4], processed_order);
+
+    let expected_edges =
+        vec![(0, 1, graph::DFSEdgeType::Tree),
+             (1, 2, graph::DFSEdgeType::Tree),
+             (3, 1, graph::DFSEdgeType::Forward),
+             (4, 2, graph::DFSEdgeType::Forward)];  // FIXME - should these really be Cross edges?
+
+    assert_eq!(expected_edges, edges);
+}

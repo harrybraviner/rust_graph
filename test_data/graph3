@@ -1,6 +1,7 @@
 // Graph
 number_of_vertices: 6
 directed: false
+edges:
 0 1
 0 3
 0 5

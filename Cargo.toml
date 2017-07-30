@@ -8,3 +8,4 @@ name = "graph"
 path = "src/graph.rs"
 
 [dependencies]
+regex = "0.2"
