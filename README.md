@@ -8,6 +8,12 @@ Feedback is welcome.
 
 You are free to copy and reuse this code.
 
+# Todo
+
+* Signature for processing vertices and edges - does it really need the
+  parent Vec? Should it also be getting the node state (and hence the
+  entry / exit times?)
+
 # Features
 
 * Breadth-first traversal.
