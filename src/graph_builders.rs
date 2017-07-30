@@ -21,7 +21,23 @@ pub fn unconnected<T : Eq + Clone + Hash>(nodes : Vec<T>, directed : bool) -> Gr
 }
 
 pub fn from_file(filename : &str) -> Result<Graph<usize>> {
-    let file = File::open(filename)?;
+    let (number_of_vertices, directed, edges, _) = parse_file::<usize>(filename);
+
+    let mut g = unconnected((0..number_of_vertices).collect(), directed);
+
+    for (source, dest) in edges {
+        if directed { g.add_directed_edge(source, dest) }
+        else { g.add_undirected_edge(source, dest) }
+    }
+
+    Ok(g)
+}
+
+// A helper function that returns the parsed data read from the graph file.
+// We want to do slightly different things with it depending on whether or not
+// we're expecting node names.
+fn parse_file<T>(filename : &str) -> (usize, bool, Vec<(usize, usize)>, Vec<T>)  {
+    let file = File::open(filename).unwrap();
     let mut buf_reader = BufReader::new(file);
     let mut contents = String::new();
 
@@ -47,7 +63,7 @@ pub fn from_file(filename : &str) -> Result<Graph<usize>> {
     let mut parsed_line = false;
 
     let mut edges = Vec::new();
-    //let mut nodes = Vec::new();
+    let mut nodes : Vec<T> = Vec::new();
 
     for line in lines {
         parsed_line = false;
@@ -105,14 +121,7 @@ pub fn from_file(filename : &str) -> Result<Graph<usize>> {
         Some(d) => d,
     };
 
-    let mut g = unconnected((0..number_of_vertices).collect(), directed);
-
-    for (source, dest) in edges {
-        if directed { g.add_directed_edge(source, dest) }
-        else { g.add_undirected_edge(source, dest) }
-    }
-
-    Ok(g)
+    (number_of_vertices, directed, edges, nodes)
 }
 
 pub fn make_serialization_string<T>(graph : &Graph<T>) -> String
