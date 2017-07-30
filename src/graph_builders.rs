@@ -10,6 +10,7 @@ use std::io::prelude::*;
 use std::io::Result;
 use self::regex::Regex;
 use std::str::FromStr;
+use std::fmt::Display;
 
 pub fn unconnected<T : Eq + Clone + Hash>(nodes : Vec<T>, directed : bool) -> Graph<T> {
     let hash_map : HashMap<T, usize> =
@@ -171,19 +172,33 @@ where T : FromStr
 }
 
 pub fn make_serialization_string<T>(graph : &Graph<T>) -> String
-    where T : Clone + Eq + Hash    
+    where T : Clone + Eq + Hash
 {
     let mut ser = String::new();
     ser.push_str("// Graph\n");
     ser.push_str(&*format!("number_of_vertices: {}\n", graph.number_of_vertices()));
     ser.push_str(&*format!("directed: {}\n", graph.is_directed()));
     
+    ser.push_str("edges:\n");
     for source in 0..(graph.number_of_vertices()) {
         for dest in &graph.adjacency_list[source] {
             if graph.is_directed() || *dest > source {
                 ser.push_str(&*format!("{} {}\n", source, *dest));
             }
         }
+    }
+
+    ser
+}
+
+pub fn make_serialization_string_with_nodes<T>(graph : &Graph<T>) -> String
+    where T : Clone + Eq + Hash + Display
+{
+    let mut ser = make_serialization_string(graph); // Re-use the above code to serialize the structure
+
+    ser.push_str("nodes:\n");
+    for node in &graph.nodes {
+        ser.push_str(&format!("{}\n", node));
     }
 
     ser
