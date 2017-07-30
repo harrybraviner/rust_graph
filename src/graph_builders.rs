@@ -1,3 +1,5 @@
+extern crate regex;
+
 use super::Graph;
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -5,6 +7,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::prelude::*;
 use std::io::Result;
+use self::regex::Regex;
 
 pub fn unconnected<T : Eq + Clone + Hash>(nodes : Vec<T>, directed : bool) -> Graph<T> {
     let hash_map : HashMap<T, usize> =
@@ -18,68 +21,98 @@ pub fn unconnected<T : Eq + Clone + Hash>(nodes : Vec<T>, directed : bool) -> Gr
 }
 
 pub fn from_file(filename : &str) -> Result<Graph<usize>> {
-//    match File::open(filename) {
-//        Ok(f) => {
-//            let mut buf_reader = BufReader::new(f);
-//            let mut contents = String::new();
-//            // Read the header
-//            buf_reader.read_to_string(&mut contents);
-//            // FIXME - want to match on the above, but really ugly since I'll have lots of matches.
-//            //         What's the idiomatic way to actually do this?
-//            panic!("Not implemented")
-//        },
-//        Err(_) => Err(String::from("Unable to open file.")),
-//    }
     let file = File::open(filename)?;
     let mut buf_reader = BufReader::new(file);
     let mut contents = String::new();
 
-    // Read the header line
-    buf_reader.read_line(&mut contents)?;
+    // Strip out comments and blank lines
+    let lines =
+        buf_reader.lines()
+                  .map(|l| l.unwrap())  // FIXME - maybe better error handling than this?
+                  .map(|l| l.split("//").next().map(|x| String::from(x.trim())))
+                  .filter(|l| match l {
+                      &None => false,
+                      &Some(ref l) => l.len() > 0,
+                  })
+                  .map(|x| x.unwrap());
 
-    // Read the number of vertices
-    contents.clear();
-    buf_reader.read_line(&mut contents)?;
-    if &contents[0..20] != "number_of_vertices: " {
-        panic!("Second line of graph file is {}, which is not of correct format: number_of_vertices: n", &contents)
+    let variable_regex = Regex::new(r"^\s*([a-z_]+)\s*:\s*([a-zA-Z0-9]*)\s*$").unwrap();
+    let edges_regex = Regex::new(r"^\s*(\d+)\s*(\d+)\s*$").unwrap();
+    let nodes_regex = Regex::new(r"^\s*([a-zA-Z0-9_(::)]*[a-zA-Z0-9_]+)\s*$").unwrap();
+
+    let mut number_of_vertices = None;
+    let mut directed = None;
+    let mut edges_mode = false;
+    let mut nodes_mode = false;
+    let mut parsed_line = false;
+
+    let mut edges = Vec::new();
+    //let mut nodes = Vec::new();
+
+    for line in lines {
+        parsed_line = false;
+
+        variable_regex.captures(&line).map(|cap| {
+            match &cap[1] {
+                "edges" => {
+                    if &cap[2] != "" { panic!("Spurious text {} after edges keyword", &cap[1]) }
+                    edges_mode = true;
+                    parsed_line = true;
+                },
+                "nodes" => {
+                    if &cap[2] != "" { panic!("Spurious text {} after nodes keyword", &cap[1]) }
+                    nodes_mode = true;
+                    parsed_line = true;
+                },
+                "number_of_vertices" => {
+                    if number_of_vertices.is_some() { panic!("File specifies number_of_vertices multiple times.") }
+                    number_of_vertices = Some((&cap[2]).parse::<usize>().unwrap());
+                    parsed_line = true;
+                },
+                "directed" => {
+                    if directed.is_some() { panic!("File specifies directed multiple times.") }
+                    directed = Some((&cap[2]).parse::<bool>().unwrap());
+                    parsed_line = true;
+                },
+                s => panic!("Unrecognised variable name: {}", &cap[1]),
+            }
+        });
+
+        nodes_regex.captures(&line).map(|cap| {
+            if nodes_mode {
+                //let node = (&cap[
+            }
+        });
+
+        edges_regex.captures(&line).map(|cap| {
+            if edges_mode { // panic!("Found line formatted as edges before 'edges:' line: {}", line) }
+                let source = (&cap[1]).parse::<usize>().unwrap();
+                let dest   = (&cap[2]).parse::<usize>().unwrap();
+                edges.push((source, dest));
+                parsed_line = true;
+            }
+        });
+
+        if !parsed_line { panic!("Failed to parse line: {}", line) };
     }
-    let number_of_vertices : usize = str::parse(&contents.trim()[20..]).unwrap();
 
-    // Read whether or not the graph is directed
-    contents.clear();
-    buf_reader.read_line(&mut contents)?;
-    if &contents[0..10] != "directed: " {
-        panic!("Third line of graph file is {}, which is not of correct format: directed: [true/false]", &contents)
-    }
-    let directed : bool = str::parse(&contents.trim()[10..]).unwrap();
+    let number_of_vertices = match number_of_vertices {
+        None => panic!("number_of_vertices not specified"),
+        Some(n) => n,
+    };
+    let directed = match directed {
+        None => true,
+        Some(d) => d,
+    };
 
-    // Read edges
-    let mut edges : Vec<(usize, usize)> = Vec::new();
-    loop {
-        contents.clear();
-        buf_reader.read_line(&mut contents)?;
-        let mut iter = contents.split_whitespace();
-        let source = iter.next();
-        let dest = iter.next();
-        match (source, dest) {
-            (Some(source), Some(dest)) => {
-                edges.push((str::parse(&source).unwrap(), str::parse(&dest).unwrap()))
-            },
-            _ => break,
-        }
-    }
-
-    // Safe method of adding edges - ignores if the edge is already present
     let mut g = unconnected((0..number_of_vertices).collect(), directed);
-    for (s, d) in edges {
-        if directed {
-            g.add_directed_edge(s, d);
-        } else {
-            g.add_undirected_edge(s, d);
-        }
+
+    for (source, dest) in edges {
+        if directed { g.add_directed_edge(source, dest) }
+        else { g.add_undirected_edge(source, dest) }
     }
 
-    return Ok(g);
+    Ok(g)
 }
 
 pub fn make_serialization_string<T>(graph : &Graph<T>) -> String
