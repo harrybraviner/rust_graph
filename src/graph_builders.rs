@@ -2,12 +2,14 @@ extern crate regex;
 
 use super::Graph;
 use std::collections::HashMap;
-use std::hash::Hash;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::fs::File;
 use std::io::BufReader;
 use std::io::prelude::*;
 use std::io::Result;
 use self::regex::Regex;
+use std::str::FromStr;
 
 pub fn unconnected<T : Eq + Clone + Hash>(nodes : Vec<T>, directed : bool) -> Graph<T> {
     let hash_map : HashMap<T, usize> =
@@ -33,13 +35,51 @@ pub fn from_file(filename : &str) -> Result<Graph<usize>> {
     Ok(g)
 }
 
+pub fn from_file_with_nodes<T : Clone + Eq + Hash + FromStr>(filename : &str) -> Result<Graph<T>> {
+    let (number_of_vertices, directed, edges, nodes) = parse_file::<T>(filename);
+
+    // Test that I have the correct number of nodes
+    if number_of_vertices != nodes.len() {
+        panic!("Graph file specified {} vertices, but listed {}.", number_of_vertices, nodes.len())
+    }
+
+    {
+        // Test that the nodes are unique
+        let mut hasher = DefaultHasher::new();
+        let mut node_clones : Vec<(u64, &T)> =
+            nodes.iter().map(|n| {
+                n.hash(&mut hasher);
+                (hasher.finish(), n)
+            }).collect();
+        node_clones.sort_by(|&(h1, _), &(h2, _)| h1.cmp(&h2));
+        let mut prev_element = None;
+        for (h2, n2) in node_clones {
+            if let Some((h1, n1)) = prev_element {
+                if h1 == h2 && n1 == n2 { panic!("Nodes are not unique!") }
+            }
+            prev_element = Some((h2, n2));
+        }
+
+    }
+
+    let mut g = unconnected(nodes, directed);
+
+    for (source, dest) in edges {
+        if directed { g.add_directed_edge(source, dest) }
+        else { g.add_undirected_edge(source, dest) }
+    }
+
+    Ok(g)
+}
+
 // A helper function that returns the parsed data read from the graph file.
 // We want to do slightly different things with it depending on whether or not
 // we're expecting node names.
-fn parse_file<T>(filename : &str) -> (usize, bool, Vec<(usize, usize)>, Vec<T>)  {
+fn parse_file<T>(filename : &str) -> (usize, bool, Vec<(usize, usize)>, Vec<T>)
+where T : FromStr
+{
     let file = File::open(filename).unwrap();
-    let mut buf_reader = BufReader::new(file);
-    let mut contents = String::new();
+    let buf_reader = BufReader::new(file);
 
     // Strip out comments and blank lines
     let lines =
@@ -60,7 +100,7 @@ fn parse_file<T>(filename : &str) -> (usize, bool, Vec<(usize, usize)>, Vec<T>) 
     let mut directed = None;
     let mut edges_mode = false;
     let mut nodes_mode = false;
-    let mut parsed_line = false;
+    let mut parsed_line : bool;
 
     let mut edges = Vec::new();
     let mut nodes : Vec<T> = Vec::new();
@@ -90,18 +130,24 @@ fn parse_file<T>(filename : &str) -> (usize, bool, Vec<(usize, usize)>, Vec<T>) 
                     directed = Some((&cap[2]).parse::<bool>().unwrap());
                     parsed_line = true;
                 },
-                s => panic!("Unrecognised variable name: {}", &cap[1]),
+                s => panic!("Unrecognised variable name: {}", s),
             }
         });
 
         nodes_regex.captures(&line).map(|cap| {
             if nodes_mode {
-                //let node = (&cap[
+                let node = (&cap[1]).parse::<T>()
+                                    .or_else(|_| -> ::std::result::Result<T, ()> {
+                                            panic!("Failed to parse node: {}", &cap[1])
+                                    })
+                                    .unwrap();
+                nodes.push(node);
+                parsed_line = true;
             }
         });
 
         edges_regex.captures(&line).map(|cap| {
-            if edges_mode { // panic!("Found line formatted as edges before 'edges:' line: {}", line) }
+            if edges_mode {
                 let source = (&cap[1]).parse::<usize>().unwrap();
                 let dest   = (&cap[2]).parse::<usize>().unwrap();
                 edges.push((source, dest));

@@ -77,6 +77,21 @@ fn read_graph_from_file() {
 }
 
 #[test]
+fn read_labelled_graph_from_file() {
+    let g = graph_builders::from_file_with_nodes::<String>("test_data/graph1_labelled").unwrap();
+
+    assert_eq!(3, g.number_of_vertices());
+
+    assert_eq!(1, g.get_degree_from_index(0));
+    assert_eq!(1, g.get_degree_from_index(1));
+    assert_eq!(1, g.get_degree_from_index(2));
+
+    assert_eq!(0, g.index_from_node(String::from("A")));
+    assert_eq!(1, g.index_from_node(String::from("B")));
+    assert_eq!(2, g.index_from_node(String::from("C")));
+}
+
+#[test]
 fn read_undirected_graph_from_file() {
     let g = graph_builders::from_file("test_data/graph2").unwrap();
 
